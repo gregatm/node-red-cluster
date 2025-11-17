@@ -16,6 +16,7 @@ Complete clustering solution for Node-RED using Valkey/Redis. This package combi
 - ✅ **Pub/Sub Hot-Reload** - Workers automatically reload flows when admin saves
 - ✅ **Package Sync** - Auto-sync Node-RED plugins from Admin to Workers
 - ✅ **Debug Forwarding** - Worker debug messages appear in Admin UI debug sidebar
+- ✅ **Cluster Info in Functions** - Access `cluster.type` and `cluster.workerId` directly in function nodes
 
 ### Context Store
 - ✅ **Shared Context** - Global, flow, and node context shared across all instances
@@ -410,7 +411,44 @@ Debug messages from worker nodes are automatically forwarded to the admin node a
 
 This feature makes it easy to monitor and debug worker nodes directly from the admin UI without checking individual worker logs.
 
-### 6. Cluster Monitoring (Automatic)
+### 6. Cluster Information in Function Nodes
+
+The `cluster` object is automatically available in all function nodes, providing instance-specific metadata:
+
+```javascript
+// Direct access to cluster information (no imports needed)
+msg.payload = cluster.type;       // 'admin' or 'worker'
+msg.payload = cluster.workerId;   // 'worker-1', 'worker-2', etc.
+
+// Conditional logic based on node type
+if (cluster.type === 'worker') {
+    msg.payload = `Processed by ${cluster.workerId}`;
+    return msg;
+}
+
+// Route messages differently on admin vs worker
+if (cluster.type === 'admin') {
+    node.warn('This flow should only run on workers');
+    return null;
+}
+
+return msg;
+```
+
+**Properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `cluster.type` | `'admin' \| 'worker'` | Node role (matches `valkey.role` config) |
+| `cluster.workerId` | `string` | Unique worker ID (e.g., `worker-1`, `worker-2`) or `null` for admin |
+
+**Important Notes:**
+- No imports or setup needed in function nodes
+- Full definitions for editor autocomplete
+- Values are instance-specific and local to each Node-RED
+- Available since package version 2.1.0
+
+### 7. Cluster Monitoring (Automatic)
 
 The cluster monitoring system tracks all active workers and assigns them unique sequential IDs.
 
@@ -492,11 +530,11 @@ const activeWorkers = await clusterMonitor.getActiveWorkers();
      │ Admin   │    │ Worker 1│   │ Worker 2│    │ Worker 3│
      │         │    │         │   │         │    │         │
      │ Editor  │    │ Execute │   │ Execute │    │ Execute │
-     │ Debug RX│    │ Debug TX│   │ Debug TX│    │ Debug TX│
-     │ Publish │    │ Auto-   │   │ Auto-   │    │ Auto-   │
-     │ Flows   │    │ Reload  │   │ Reload  │    │ Reload  │
-     │         │    │ Leader  │   │ Follower│    │ Follower│
-     │         │    │ ID: w-1 │   │ ID: w-2 │    │ ID: w-3 │
+     │ Execute │    │ Debug TX│   │ Debug TX│    │ Debug TX│
+     │ Debug RX│    │ Auto-   │   │ Auto-   │    │ Auto-   │
+     │ Publish │    │ Reload  │   │ Reload  │    │ Reload  │
+     │ Flows   │    │ Leader  │   │ Follower│    │ Follower│
+     │ ID:admin│    │ ID: w-1 │   │ ID: w-2 │    │ ID: w-3 │
      └─────────┘    └─────────┘   └─────────┘    └─────────┘
 ```
 

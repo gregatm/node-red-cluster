@@ -1,0 +1,76 @@
+<script type="text/javascript">
+/**
+ * Inject cluster type definitions into Monaco editor
+ * This runs when the Node-RED editor loads
+ */
+(function() {
+    // Wait for RED to be available
+    RED.events.on('runtime-event', function(event) {
+        if (event.id === 'runtime-state' && event.retain === false) {
+            injectClusterTypes();
+        }
+    });
+
+    // Also try immediately in case we missed the event
+    if (typeof RED !== 'undefined') {
+        setTimeout(injectClusterTypes, 1000);
+    }
+
+    function injectClusterTypes() {
+        // Check if Monaco editor is available
+        if (typeof monaco === 'undefined' ||
+            !monaco.languages ||
+            !monaco.languages.typescript) {
+            console.log('[ClusterTypes] Monaco editor not available, skipping type injection');
+            return;
+        }
+
+        // Type definitions for cluster variable
+        const clusterTypes = `
+/**
+ * Cluster information for this Node-RED instance
+ * Automatically available in function nodes via functionGlobalContext
+ *
+ * @example
+ * // Access cluster information directly
+ * if (cluster.type === 'worker') {
+ *     msg.payload = \`Processed by worker \${cluster.workerId}\`;
+ * }
+ *
+ * @example
+ * // Check if running on admin node
+ * if (cluster.type === 'admin') {
+ *     node.warn('This should only run on workers');
+ *     return null;
+ * }
+ */
+declare const cluster: {
+    /**
+     * Node type: 'admin' or 'worker'
+     * - admin: Has flow editor, can publish flow updates
+     * - worker: Executes flows, receives updates from admin
+     */
+    readonly type: 'admin' | 'worker';
+
+    /**
+     * Unique worker ID for this instance (e.g., 'hostname-1')
+     * Useful for identifying which worker processed a message
+     */
+    readonly workerId: string;
+};
+`;
+
+        try {
+            // Add type definitions to Monaco's JavaScript/TypeScript service
+            monaco.languages.typescript.javascriptDefaults.addExtraLib(
+                clusterTypes,
+                'file:///node_modules/@types/node-red-cluster/index.d.ts'
+            );
+
+            console.log('[ClusterTypes] Type definitions injected into Monaco editor');
+        } catch (error) {
+            console.error('[ClusterTypes] Error injecting type definitions:', error);
+        }
+    }
+})();
+</script>

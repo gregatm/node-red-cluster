@@ -444,6 +444,29 @@ export class ValkeyStorage implements StorageModule {
     await this.clusterMonitor.initialize(this.config.role);
     log(`[ClusterStorage] Cluster monitoring initialized for ${this.config.role}`)
 
+    // Expose cluster information directly in function node sandbox (like 'node', 'msg', 'env')
+    // This requires hooking into the function node's sandbox creation
+    try {
+      // Create cluster object with current values
+      const clusterObj = {
+        type: this.config.role,
+        workerId: this.clusterMonitor.getWorkerId() || 'unknown',
+      };
+
+      // Store cluster object for injection into function nodes
+      // We'll hook into function node creation after nodes are loaded
+      if (runtime && runtime.events) {
+        runtime.events.once('nodes-started', () => {
+          this.injectClusterIntoFunctionNodes(runtime, clusterObj);
+        });
+      }
+
+      log(`[ClusterStorage] Cluster information will be exposed to function nodes`);
+      log(`[ClusterStorage] Type: ${this.config.role}, WorkerId: ${clusterObj.workerId}`);
+    } catch (error) {
+      console.error('[ClusterStorage] Failed to setup cluster injection:', error);
+    }
+
     // Note: We don't restore active project during init() because Node-RED's runtime
     // is not fully initialized yet (settings not available). The project metadata
     // is saved to Redis when a project is created/activated, but restoration is manual.
@@ -1185,6 +1208,32 @@ export class ValkeyStorage implements StorageModule {
     log('[ClusterStorage] Debug receiver enabled');
   }
 
+
+  /**
+   * Inject cluster object into function node sandbox
+   * This makes 'cluster' available as a direct variable like 'node', 'msg', 'env'
+   */
+  private injectClusterIntoFunctionNodes(runtime: any, clusterObj: any): void {
+    try {
+      // Node-RED uses vm.Script.runInContext() to execute function node code
+      // We need to monkey-patch Script.prototype.runInContext to inject cluster
+      const vm = require('vm');
+      const Script = vm.Script;
+      const originalRunInContext = Script.prototype.runInContext;
+
+      Script.prototype.runInContext = function(contextifiedObject: any, options?: any) {
+        // Inject cluster into the context object before execution
+        if (contextifiedObject && !contextifiedObject.cluster) {
+          contextifiedObject.cluster = clusterObj;
+        }
+        return originalRunInContext.call(this, contextifiedObject, options);
+      };
+
+      log('[ClusterStorage] Cluster variable injected into function node sandbox via Script.prototype.runInContext');
+    } catch (error) {
+      console.error('[ClusterStorage] Error injecting cluster into function nodes:', error);
+    }
+  }
 
   /**
    * Close connections (for cleanup)

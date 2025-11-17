@@ -1,6 +1,6 @@
 {
   "name": "node-red-cluster",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Complete Node-RED clustering solution with Valkey/Redis: storage, context, and leader election",
   "keywords": [
     "node-red",
@@ -56,7 +56,8 @@
       "cluster-leader": "dist/nodes/cluster-leader.cjs",
       "release-cluster-leader": "dist/nodes/release-cluster-leader.cjs",
       "valkey-config": "dist/nodes/valkey-config.cjs",
-      "cluster-dashboard": "dist/nodes/cluster-dashboard.cjs"
+      "cluster-dashboard": "dist/nodes/cluster-dashboard.cjs",
+      "cluster-types-injector": "dist/nodes/cluster-types-injector.cjs"
     }
   },
   "files": [
