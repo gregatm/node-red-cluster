@@ -15,6 +15,7 @@ Complete clustering solution for Node-RED using Valkey/Redis. This package combi
 - ✅ **Admin/Worker Architecture** - Separate roles for editor and execution
 - ✅ **Pub/Sub Hot-Reload** - Workers automatically reload flows when admin saves
 - ✅ **Package Sync** - Auto-sync Node-RED plugins from Admin to Workers
+- ✅ **Debug Forwarding** - Worker debug messages appear in Admin UI debug sidebar
 
 ### Context Store
 - ✅ **Shared Context** - Global, flow, and node context shared across all instances
@@ -27,6 +28,12 @@ Complete clustering solution for Node-RED using Valkey/Redis. This package combi
 - ✅ **Manual Release** - Release leadership lock for graceful shutdown or rebalancing
 - ✅ **Multiple Leaders** - Different lock keys for different job types
 - ✅ **Visual Status** - Real-time leader/follower indicators
+
+### Cluster Monitoring
+- ✅ **Unique Worker IDs** - Each worker gets a hostname-based sequential ID (e.g., `worker-1`, `worker-2`)
+- ✅ **Heartbeat System** - Workers maintain presence in Redis with automatic TTL renewal
+- ✅ **Graceful Shutdown** - Workers clean up their Redis keys on exit
+- ✅ **Active Workers List** - Query active workers across the cluster
 
 ### Platform Support
 - ✅ **Valkey/Redis Compatible** - Works with both Valkey ≥8.0 and Redis ≥6.0
@@ -69,6 +76,14 @@ module.exports = {
     updateChannel: 'nodered:flows:updated',     // Channel for flow updates (default)
     syncPackages: true,                          // Sync packages to workers (default: true)
     packageChannel: 'nodered:packages:updated',  // Channel for package updates (default, optional)
+    debugChannel: 'nodered:debug',               // Channel for debug forwarding (default, optional)
+
+    // Cluster Monitoring (optional)
+    clusterMonitoring: {
+      enabled: true,           // Enable cluster monitoring (default: true)
+      heartbeatInterval: 10000, // Heartbeat interval in ms (default: 10s)
+      heartbeatTTL: 30000      // Heartbeat TTL in ms (default: 30s)
+    }
 
     // Context & Compression
     enableCompression: true,  // Compress flows/context >1KB
@@ -366,31 +381,123 @@ lockKey: "nodered:report-job"
 
 This ensures different workers handle different scheduled tasks, distributing the load.
 
+### 5. Debug Message Forwarding (Automatic)
+
+Debug messages from worker nodes are automatically forwarded to the admin node and appear in the debug sidebar with the worker ID prefix.
+
+**How it works:**
+1. **Worker nodes** capture debug node outputs and `node.warn()`/`node.error()` calls
+2. Messages are forwarded to Redis pub/sub channel (`nodered:debug`)
+3. **Admin node** receives messages and injects them into the debug sidebar
+4. Each message is prefixed with the worker ID for easy identification
+
+**Example debug output:**
+```
+[worker-1] Temperature: 25.3°C
+[worker-2] Sensor offline
+[worker-1] [warn] High CPU usage
+```
+
+**Configuration:**
+- **Debug Channel**: `nodered:debug` (default, can be customized)
+- **Worker ID Format**: `hostname-N` (e.g., `nodered-worker-1`, `worker-2`)
+- **Automatic**: No configuration needed, works out of the box
+
+**Supported message types:**
+- Debug node outputs
+- `node.warn()` messages
+- `node.error()` messages
+
+This feature makes it easy to monitor and debug worker nodes directly from the admin UI without checking individual worker logs.
+
+### 6. Cluster Monitoring (Automatic)
+
+The cluster monitoring system tracks all active workers and assigns them unique sequential IDs.
+
+**Worker ID Assignment:**
+- Each worker gets a unique ID based on hostname and sequence number
+- Format: `hostname-N` where N is the first available number (1, 2, 3, ...)
+- Example: `worker-1`, `worker-2`, `worker-3` or `pod-abc-1`, `pod-abc-2`
+
+**Heartbeat System:**
+- Workers send heartbeat every 10 seconds (configurable)
+- Heartbeat TTL is 30 seconds (configurable)
+- If a worker crashes, its Redis key expires after TTL
+- Other workers can reuse the worker ID after expiration
+
+**Graceful Shutdown:**
+- Workers automatically clean up their Redis keys on shutdown (SIGTERM, SIGINT)
+- Leadership locks are released
+- Clean cluster state maintained
+
+**Monitoring Configuration:**
+```javascript
+valkey: {
+  clusterMonitoring: {
+    enabled: true,           // Enable monitoring (default: true)
+    heartbeatInterval: 10000, // Heartbeat every 10s
+    heartbeatTTL: 30000      // Expire after 30s if no heartbeat
+  }
+}
+```
+
+**Query Active Workers:**
+```javascript
+// Get list of active workers (admin node only)
+const storage = RED.settings.storageModule;
+const clusterMonitor = storage.getClusterMonitor();
+const activeWorkers = await clusterMonitor.getActiveWorkers();
+
+// Returns array of worker info:
+// [
+//   {
+//     workerId: 'worker-1',
+//     hostname: 'worker',
+//     n: 1,
+//     role: 'worker',
+//     pid: 1234,
+//     nodeVersion: 'v18.19.0',
+//     startTime: 1234567890,
+//     lastHeartbeat: 1234567900,
+//     uptime: 10000
+//   },
+//   ...
+// ]
+```
+
+**Admin nodes:**
+- Admin nodes are NOT tracked in cluster monitoring
+- Admin ID format: `hostname-admin` (for logging purposes only)
+- No heartbeat or Redis key for admin nodes
+
 ## 🏗️ Architecture
 
 ### How It Works
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      Redis/Valkey                           │
-│  ┌─────────────┬──────────────┬────────────────────────┐    │
-│  │   Storage   │   Context    │   Leader Locks         │    │
-│  │  flows      │  global:*    │  nodered:leader        │    │
-│  │  credentials│  flow:*      │  nodered:backup-job    │    │
-│  │  settings   │  node:*      │  ...                   │    │
-│  └─────────────┴──────────────┴────────────────────────┘    │
-│         ↑              ↑                    ↑               │
-│    Pub/Sub         Atomic Ops          SET NX EX            │
-└─────────┬──────────────┬────────────────────┬───────────────┘
-          │              │                    │
-     ┌────┴────┐    ┌────┴────┐         ┌─────┴───┐
-     │ Admin   │    │ Worker 1│         │ Worker 2│
-     │         │    │         │         │         │
-     │ Editor  │    │ Execute │         │ Execute │
-     │ Publish │    │ Auto-   │         │ Auto-   │
-     │ Flows   │    │ Reload  │         │ Reload  │
-     │         │    │ Leader  │         │ Follower│
-     └─────────┘    └─────────┘         └─────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Redis/Valkey                                │
+│  ┌─────────────┬──────────────┬──────────────┬─────────────────┐    │
+│  │   Storage   │   Context    │ Leader Locks │ Cluster Monitor │    │
+│  │  flows      │  global:*    │  leader      │  worker:worker-1│    │
+│  │  credentials│  flow:*      │  backup-job  │  worker:worker-2│    │
+│  │  settings   │  node:*      │  ...         │  ...            │    │
+│  └─────────────┴──────────────┴──────────────┴─────────────────┘    │
+│         ↑              ↑              ↑               ↑             │
+│    Pub/Sub         Atomic Ops    SET NX EX      Heartbeat+TTL       │
+│  (flows, debug)                                                     │
+└─────────┬──────────────┬─────────────┬──────────────┬───────────────┘
+          │              │             │              │
+     ┌────┴────┐    ┌────┴────┐   ┌────┴────┐    ┌────┴────┐
+     │ Admin   │    │ Worker 1│   │ Worker 2│    │ Worker 3│
+     │         │    │         │   │         │    │         │
+     │ Editor  │    │ Execute │   │ Execute │    │ Execute │
+     │ Debug RX│    │ Debug TX│   │ Debug TX│    │ Debug TX│
+     │ Publish │    │ Auto-   │   │ Auto-   │    │ Auto-   │
+     │ Flows   │    │ Reload  │   │ Reload  │    │ Reload  │
+     │         │    │ Leader  │   │ Follower│    │ Follower│
+     │         │    │ ID: w-1 │   │ ID: w-2 │    │ ID: w-3 │
+     └─────────┘    └─────────┘   └─────────┘    └─────────┘
 ```
 
 ### Key Features
@@ -399,19 +506,38 @@ This ensures different workers handle different scheduled tasks, distributing th
 2. **Shared Context**: All instances read/write to same Redis keys
 3. **Leader Election**: Only one worker executes scheduled jobs
 4. **Package Sync**: Admin installs package → Workers auto-sync
+5. **Debug Forwarding**: Worker debug → Redis pub/sub → Admin UI
+6. **Cluster Monitoring**: Workers register with unique IDs + heartbeat
 
 ### Redis Key Structure
 
 ```
-nodered:flows              # Flow configuration
-nodered:credentials        # Encrypted credentials
-nodered:settings           # User settings
-nodered:sessions           # User sessions (with TTL)
-nodered:context:global:*   # Global context
-nodered:context:flow:*     # Flow context
-nodered:context:node:*     # Node context
-nodered:leader             # Leader election lock
-nodered:backup-job         # Job-specific leader lock
+# Storage
+nodered:flows                    # Flow configuration
+nodered:credentials              # Encrypted credentials
+nodered:settings                 # User settings
+nodered:sessions                 # User sessions (with TTL)
+nodered:packages                 # Installed packages list
+
+# Context Store
+nodered:context:global:*         # Global context
+nodered:context:flow:*           # Flow context
+nodered:context:node:*           # Node context
+
+# Leader Election
+nodered:leader                   # Default leader lock
+nodered:backup-job               # Job-specific leader lock
+nodered:sync-job                 # Another job-specific lock
+
+# Cluster Monitoring
+nodered:cluster:worker:worker-1  # Worker 1 info + heartbeat (TTL: 30s)
+nodered:cluster:worker:worker-2  # Worker 2 info + heartbeat (TTL: 30s)
+nodered:cluster:worker:worker-3  # Worker 3 info + heartbeat (TTL: 30s)
+
+# Pub/Sub Channels
+nodered:flows:updated            # Flow update notifications
+nodered:packages:updated         # Package sync notifications
+nodered:debug                    # Debug message forwarding
 ```
 
 ## 🐳 Docker Deployment
@@ -687,8 +813,18 @@ module.exports = {
 | `sessionTTL` | `number` | `86400` | Session TTL in seconds |
 | `syncPackages` | `boolean` | `true` | *(Admin only)* Enable package sync to workers |
 | `packageChannel` | `string` | `'nodered:packages:updated'` | Pub/sub channel for package updates |
+| `debugChannel` | `string` | `'nodered:debug'` | Pub/sub channel for debug message forwarding |
+| `clusterMonitoring` | `object` | See below | Cluster monitoring configuration |
 
-**Note:** Both admin and worker use the default `packageChannel` value. Only specify `packageChannel` explicitly if you need a custom channel name (must be the same on both admin and worker).
+**Cluster Monitoring Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `true` | Enable cluster monitoring |
+| `heartbeatInterval` | `number` | `10000` | Heartbeat interval in milliseconds (10s) |
+| `heartbeatTTL` | `number` | `30000` | Heartbeat TTL in milliseconds (30s) |
+
+**Note:** Both admin and worker use the default `packageChannel` and `debugChannel` values. Only specify them explicitly if you need custom channel names (must be the same on both admin and worker).
 
 ### Context Store Options
 
