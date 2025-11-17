@@ -100,6 +100,10 @@ const storageModule: any = {
   // Expose projects proxy - Node-RED will copy this reference before init()
   // The proxy will forward all calls to the real module after init
   projects: projectsProxy,
+
+  // Expose the internal storage instance for custom nodes that need direct Redis access
+  // This is used by the cluster-dashboard node to query worker heartbeats
+  _storageInstance: storage,
 };
 
 // Export as default for ESM

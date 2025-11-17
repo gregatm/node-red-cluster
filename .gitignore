@@ -10,3 +10,4 @@ coverage/
 .claude/settings.local.json
 CLAUDE.md
 node-red/
+/.playwright-mcp

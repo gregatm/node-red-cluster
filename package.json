@@ -1,6 +1,6 @@
 {
   "name": "node-red-cluster",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Complete Node-RED clustering solution with Valkey/Redis: storage, context, and leader election",
   "keywords": [
     "node-red",
@@ -55,7 +55,8 @@
     "nodes": {
       "cluster-leader": "dist/nodes/cluster-leader.cjs",
       "release-cluster-leader": "dist/nodes/release-cluster-leader.cjs",
-      "valkey-config": "dist/nodes/valkey-config.cjs"
+      "valkey-config": "dist/nodes/valkey-config.cjs",
+      "cluster-dashboard": "dist/nodes/cluster-dashboard.cjs"
     }
   },
   "files": [
@@ -65,8 +66,8 @@
   ],
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json && npm run build:rename && npm run build:fix-imports && npm run build:copy-html",
-    "build:rename": "mv dist/cjs/index.js dist/index.cjs && mv dist/cjs/index.d.ts dist/index.d.cts && mv dist/cjs/storage.js dist/storage.cjs && mv dist/cjs/context.js dist/context.cjs && mv dist/cjs/context-entry.js dist/context-entry.cjs && mv dist/cjs/types.js dist/types.cjs && mv dist/cjs/package-helper.js dist/package-helper.cjs && rm -rf dist/cjs",
-    "build:fix-imports": "node -e \"const fs = require('fs'); ['dist/index.cjs', 'dist/storage.cjs', 'dist/context.cjs', 'dist/context-entry.cjs'].forEach(file => { let content = fs.readFileSync(file, 'utf8'); content = content.replace(/require\\(\\\".\\/storage\\.js\\\"\\)/g, 'require(\\\"./storage.cjs\\\")').replace(/require\\(\\\".\\/context\\.js\\\"\\)/g, 'require(\\\"./context.cjs\\\")').replace(/require\\(\\\".\\/types\\.js\\\"\\)/g, 'require(\\\"./types.cjs\\\")').replace(/require\\(\\\".\\/package-helper\\.js\\\"\\)/g, 'require(\\\"./package-helper.cjs\\\")'); fs.writeFileSync(file, content); });\"",
+    "build:rename": "mv dist/cjs/index.js dist/index.cjs && mv dist/cjs/index.d.ts dist/index.d.cts && mv dist/cjs/storage.js dist/storage.cjs && mv dist/cjs/context.js dist/context.cjs && mv dist/cjs/context-entry.js dist/context-entry.cjs && mv dist/cjs/types.js dist/types.cjs && mv dist/cjs/package-helper.js dist/package-helper.cjs && mv dist/cjs/cluster-monitor.js dist/cluster-monitor.cjs && rm -rf dist/cjs",
+    "build:fix-imports": "node -e \"const fs = require('fs'); ['dist/index.cjs', 'dist/storage.cjs', 'dist/context.cjs', 'dist/context-entry.cjs', 'dist/cluster-monitor.cjs'].forEach(file => { let content = fs.readFileSync(file, 'utf8'); content = content.replace(/require\\(\\\".\\/storage\\.js\\\"\\)/g, 'require(\\\"./storage.cjs\\\")').replace(/require\\(\\\".\\/context\\.js\\\"\\)/g, 'require(\\\"./context.cjs\\\")').replace(/require\\(\\\".\\/types\\.js\\\"\\)/g, 'require(\\\"./types.cjs\\\")').replace(/require\\(\\\".\\/package-helper\\.js\\\"\\)/g, 'require(\\\"./package-helper.cjs\\\")').replace(/require\\(\\\".\\/cluster-monitor\\.js\\\"\\)/g, 'require(\\\"./cluster-monitor.cjs\\\")'); fs.writeFileSync(file, content); });\"",
     "build:copy-html": "mkdir -p dist/nodes && cp src/nodes/*.html dist/nodes/ && cp src/nodes/*.cjs dist/nodes/",
     "test": "echo \"No tests yet\"",
     "test:watch": "npm test -- --watch",

@@ -1,0 +1,83 @@
+<!-- Auto-load cluster dashboard script -->
+<script type="text/javascript" src="cluster/cluster-dashboard.js"></script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('cluster-dashboard', {
+        category: 'cluster',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: '' }
+        },
+        inputs: 0,
+        outputs: 0,
+        icon: 'font-awesome/fa-tachometer',
+        paletteLabel: 'cluster dashboard',
+        label: function() {
+            return this.name || 'cluster dashboard';
+        },
+        labelStyle: function() {
+            return this.name ? 'node_label_italic' : '';
+        },
+        oneditprepare: function() {
+            // Show cluster tab when node is edited
+            RED.sidebar.show('cluster');
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="cluster-dashboard">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-tips">
+        <strong>Note:</strong> The Cluster Workers tab is automatically available in the sidebar.
+        <br>This node is for documentation purposes only - the dashboard works without adding it to your flow.
+        <br>You can view worker status in the sidebar under the "Cluster" tab.
+    </div>
+</script>
+
+<script type="text/html" data-help-name="cluster-dashboard">
+    <p>Provides a Cluster Workers sidebar panel showing real-time worker health and status.</p>
+
+    <h3>Features</h3>
+    <ul>
+        <li>Real-time worker status monitoring</li>
+        <li>Worker uptime tracking</li>
+        <li>Package count per worker</li>
+        <li>Node.js version information</li>
+        <li>Online/offline status with visual indicators</li>
+    </ul>
+
+    <h3>Usage</h3>
+    <p>The Cluster Workers panel is automatically available in the right sidebar.</p>
+    <p>Click on the "Cluster" tab in the sidebar to view worker status.</p>
+    <p><strong>Note:</strong> You don't need to add this node to your flow - it's for documentation only.</p>
+
+    <h3>Worker Information Displayed</h3>
+    <dl class="message-properties">
+        <dt>Worker ID</dt>
+        <dd>Hostname of the worker instance</dd>
+
+        <dt>Status</dt>
+        <dd>Online (green dot) or Offline (red dot) based on heartbeat</dd>
+
+        <dt>Uptime</dt>
+        <dd>Time since worker process started (formatted as days/hours/minutes/seconds)</dd>
+
+        <dt>Packages</dt>
+        <dd>Number of npm packages installed on the worker</dd>
+
+        <dt>Node Version</dt>
+        <dd>Node.js version running on the worker</dd>
+    </dl>
+
+    <h3>Technical Details</h3>
+    <ul>
+        <li>Worker data is fetched from Redis and updated every 2 seconds in the UI</li>
+        <li>Workers send heartbeat to Redis every 30 seconds</li>
+        <li>Worker heartbeat data has a TTL of 60 seconds in Redis</li>
+        <li>Workers are marked offline if no heartbeat received for 65+ seconds</li>
+        <li>This feature requires workers to be configured with node-red-cluster storage module</li>
+    </ul>
+</script>

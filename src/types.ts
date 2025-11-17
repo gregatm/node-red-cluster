@@ -125,6 +125,90 @@ export interface ValkeyStorageConfig {
    * @default "nodered:packages:updated"
    */
   packageChannel?: string;
+
+  /**
+   * Pub/sub channel name for debug message forwarding
+   * @default "nodered:debug"
+   */
+  debugChannel?: string;
+
+  /**
+   * Cluster monitoring configuration
+   */
+  clusterMonitoring?: ClusterMonitoringConfig;
+}
+
+/**
+ * Cluster monitoring configuration
+ */
+export interface ClusterMonitoringConfig {
+  /**
+   * Enable cluster monitoring and heartbeat
+   * @default true
+   */
+  enabled?: boolean;
+
+  /**
+   * Heartbeat interval in milliseconds
+   * @default 10000 (10 seconds)
+   */
+  heartbeatInterval?: number;
+
+  /**
+   * Heartbeat TTL in milliseconds (should be 3x heartbeatInterval)
+   * @default 30000 (30 seconds)
+   */
+  heartbeatTTL?: number;
+}
+
+/**
+ * Worker information stored in Redis
+ */
+export interface WorkerInfo {
+  /**
+   * Unique worker ID (hostname-N)
+   */
+  workerId: string;
+
+  /**
+   * Hostname of the machine
+   */
+  hostname: string;
+
+  /**
+   * Counter number for this hostname
+   */
+  n: number;
+
+  /**
+   * Node role: 'admin' or 'worker'
+   */
+  role: 'admin' | 'worker';
+
+  /**
+   * Process ID
+   */
+  pid: number;
+
+  /**
+   * Node.js version
+   */
+  nodeVersion: string;
+
+  /**
+   * Start timestamp (milliseconds since epoch)
+   */
+  startTime: number;
+
+  /**
+   * Last heartbeat timestamp (milliseconds since epoch)
+   */
+  lastHeartbeat: number;
+
+  /**
+   * Uptime in milliseconds
+   */
+  uptime: number;
 }
 
 export interface NodeREDSettings {
