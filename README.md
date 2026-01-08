@@ -2,7 +2,7 @@
 
 Complete clustering solution for Node-RED using Valkey/Redis. This package combines storage, context, and leader election into a single unified solution for horizontal scaling.
 
-> **Note:** This package merges and replaces three previous packages:
+> **Note:** This package merges and replaces my three previous packages:
 > - [node-red-storage-valkey](https://github.com/Siphion/node-red-storage-valkey) (deprecated)
 > - [node-red-context-valkey](https://github.com/Siphion/node-red-context-valkey) (deprecated)
 > - [node-red-contrib-cluster-leader](https://github.com/Siphion/node-red-contrib-cluster-leader) (deprecated)
