@@ -28,15 +28,23 @@ module.exports = function (RED) {
     async function initRedis() {
       try {
         const redisConfig = {
-          host: valkeyConfig ? valkeyConfig.host : process.env.REDIS_HOST || 'redis',
-          port: valkeyConfig ? valkeyConfig.port : parseInt(process.env.REDIS_PORT || '6379'),
-          db: valkeyConfig ? valkeyConfig.database : 0,
+          host: process.env.REDIS_HOST || 'redis',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+          db: 0,
           lazyConnect: true,
           retryStrategy: (times) => {
             const delay = Math.min(times * 50, 2000);
             return delay;
           },
+          reconnectOnError: (err) => {
+            const targetError = 'READONLY';
+            if (err.message.includes(targetError)) {
+              return true;
+            }
+            return false;
+          },
         };
+        Object.assign(redisConfig, valkeyConfig.redisOptions);
 
         if (valkeyConfig && valkeyConfig.credentials && valkeyConfig.credentials.password) {
           redisConfig.password = valkeyConfig.credentials.password;

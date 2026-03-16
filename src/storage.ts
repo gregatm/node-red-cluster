@@ -88,14 +88,7 @@ export class ValkeyStorage implements StorageModule {
 
     // Extract ioredis connection options (everything else)
     const userConfigAny = userConfig as any;
-    const ioredisOptions: RedisOptions = {
-      host: userConfigAny.host,
-      port: userConfigAny.port,
-      sentinels: userConfigAny.sentinels,
-      name: userConfigAny.name,
-      tls: userConfigAny.tls,
-      // Add any other RedisOptions properties as needed
-    };
+    const ioredisOptions: RedisOptions = userConfigAny.redisOptions;
 
     // Store complete config
     this.config = {

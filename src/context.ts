@@ -128,6 +128,13 @@ export class ValkeyContext implements ContextStore {
           const delay = Math.min(times * 50, 2000);
           return delay;
         },
+        reconnectOnError: (err: any) => {
+          const targetError = 'READONLY';
+          if (err.message.includes(targetError)) {
+            return true;
+          }
+          return false;
+        },
       });
 
       // Connect to Redis
