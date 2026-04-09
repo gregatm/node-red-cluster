@@ -616,7 +616,7 @@ export class ValkeyStorage implements StorageModule {
       // - Array when there's an active project
       // - Object {flows: [], rev: '0'} when no active project
       const activeProject = this.localfilesystem.projects?.getActiveProject?.();
-      const dataToSave = activeProject ? sanitized.flows : sanitized;
+      const dataToSave = sanitized.flows;
 
       await this.localfilesystem.saveFlows(dataToSave);
       log('[ClusterStorage] Flows saved via localfilesystem');
