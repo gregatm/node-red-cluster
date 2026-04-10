@@ -16,41 +16,9 @@
     "high-availability"
   ],
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "module": "./dist/index.cjs",
   "types": "./dist/index.d.ts",
   "type": "module",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    },
-    "./storage": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    },
-    "./context": {
-      "import": {
-        "types": "./dist/context-entry.d.ts",
-        "default": "./dist/context-entry.js"
-      },
-      "require": {
-        "types": "./dist/context-entry.d.cts",
-        "default": "./dist/context-entry.cjs"
-      }
-    }
-  },
   "node-red": {
     "nodes": {
       "cluster-leader": "dist/nodes/cluster-leader.cjs",
@@ -66,10 +34,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.cjs.json && npm run build:rename && npm run build:fix-imports && npm run build:copy-html",
+    "build": "rm -rf dist && tsc && mkdir -p dist/nodes && cp src/nodes/* dist/nodes/",
     "build:rename": "mv dist/cjs/index.js dist/index.cjs && mv dist/cjs/index.d.ts dist/index.d.cts && mv dist/cjs/storage.js dist/storage.cjs && mv dist/cjs/context.js dist/context.cjs && mv dist/cjs/context-entry.js dist/context-entry.cjs && mv dist/cjs/types.js dist/types.cjs && mv dist/cjs/package-helper.js dist/package-helper.cjs && mv dist/cjs/cluster-monitor.js dist/cluster-monitor.cjs && rm -rf dist/cjs",
     "build:fix-imports": "node -e \"const fs = require('fs'); ['dist/index.cjs', 'dist/storage.cjs', 'dist/context.cjs', 'dist/context-entry.cjs', 'dist/cluster-monitor.cjs'].forEach(file => { let content = fs.readFileSync(file, 'utf8'); content = content.replace(/require\\(\\\".\\/storage\\.js\\\"\\)/g, 'require(\\\"./storage.cjs\\\")').replace(/require\\(\\\".\\/context\\.js\\\"\\)/g, 'require(\\\"./context.cjs\\\")').replace(/require\\(\\\".\\/types\\.js\\\"\\)/g, 'require(\\\"./types.cjs\\\")').replace(/require\\(\\\".\\/package-helper\\.js\\\"\\)/g, 'require(\\\"./package-helper.cjs\\\")').replace(/require\\(\\\".\\/cluster-monitor\\.js\\\"\\)/g, 'require(\\\"./cluster-monitor.cjs\\\")'); fs.writeFileSync(file, content); });\"",
-    "build:copy-html": "mkdir -p dist/nodes && cp src/nodes/*.html dist/nodes/ && cp src/nodes/*.cjs dist/nodes/",
+    "build:copy-html": "mkdir -p dist/nodes && cp src/nodes/*.html dist/nodes/ && cp src/nodes/*.js dist/nodes/",
     "test": "echo \"No tests yet\"",
     "test:watch": "npm test -- --watch",
     "lint": "eslint src --ext .ts",

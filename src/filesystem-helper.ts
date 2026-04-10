@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { createHash } from 'crypto';
-import type { FlowConfig } from './types.js';
+import type { FlowConfig } from './types.cjs';
 
 /**
  * FileSystemHelper

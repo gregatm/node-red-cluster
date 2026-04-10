@@ -20,7 +20,7 @@ module.exports = function (RED) {
 
     // Last resort: try require
     try {
-      return require('node-red-cluster/storage');
+      return require('node-red-cluster').storageModule;
     } catch (e) {
       return null;
     }

@@ -1,6 +1,6 @@
 import type { Redis } from 'ioredis';
 import * as os from 'os';
-import type { ClusterMonitoringConfig, WorkerInfo } from './types.js';
+import type { ClusterMonitoringConfig, WorkerInfo } from './types.cjs';
 
 const DEFAULT_HEARTBEAT_INTERVAL = 10000; // 10s
 const DEFAULT_HEARTBEAT_TTL = 30000; // 30s

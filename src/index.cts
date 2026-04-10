@@ -1,9 +1,9 @@
-import { ValkeyStorage } from './storage.js';
-import { PackageHelper } from './package-helper.js';
-import { ValkeyContext } from './context.js';
-
+import { ValkeyStorage } from './storage.cjs';
+import { PackageHelper } from './package-helper.cjs';
+import { ValkeyContext } from './context.cjs';
+import type { ValkeyContextConfig } from './types.cjs';
 export { ValkeyStorage, PackageHelper, ValkeyContext };
-export * from './types.js';
+export * from './types.cjs';
 
 // Create singleton instance
 const storage = new ValkeyStorage();
@@ -107,7 +107,10 @@ const storageModule: any = {
 };
 
 // Export as default for ESM
-export default storageModule;
+//export default storageModule;
 
 // Export for CommonJS (Node-RED compatibility)
-module.exports = storageModule;
+module.exports = {
+  storageModule,
+  valkeyContext: (config: ValkeyContextConfig) => new ValkeyContext(config)
+};

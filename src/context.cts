@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { gzip, gunzip } from 'zlib';
 import { promisify } from 'util';
 import stringify from 'json-stringify-safe';
-import type { ValkeyContextConfig, ContextStore, PropertyPath } from './types.js';
+import type { ValkeyContextConfig, ContextStore, PropertyPath } from './types.cjs';
 
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);

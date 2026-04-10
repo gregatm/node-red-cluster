@@ -4,8 +4,8 @@ import { gzip, gunzip } from 'zlib';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { PackageHelper } from './package-helper.js';
-import { ClusterMonitor } from './cluster-monitor.js';
+import { PackageHelper } from './package-helper.cjs';
+import { ClusterMonitor } from './cluster-monitor.cjs';
 import type {
   ValkeyStorageConfig,
   NodeREDSettings,
@@ -16,7 +16,7 @@ import type {
   LibraryEntry,
   StorageModule,
   ProjectMetadata,
-} from './types.js';
+} from './types.cjs';
 
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
@@ -105,7 +105,7 @@ export class ValkeyStorage implements StorageModule {
 
     // Pass ioredis options directly - let ioredis handle its own defaults
     const connectionConfig: RedisOptions = ioredisOptions;
-    const hasAdvancedConfig = ioredisOptions.sentinels;
+    const hasAdvancedConfig = ioredisOptions?.sentinels;
 
     // Create Redis client with all ioredis options
     this.client = new Redis({

@@ -42,9 +42,9 @@ module.exports = function (RED) {
               return true;
             }
             return false;
-          },
+          }
         };
-        Object.assign(redisConfig, valkeyConfig.redisOptions);
+        Object.assign(redisConfig, valkeyConfig);
 
         if (valkeyConfig && valkeyConfig.credentials && valkeyConfig.credentials.password) {
           redisConfig.password = valkeyConfig.credentials.password;
